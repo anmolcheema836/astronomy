@@ -27,7 +27,11 @@ class AstrologyEngine {
         }
         
         this.sweph = new SwissEphemeris();
-        this.geocoder = new BrowserGeocoder({ provider: 'openstreetmap' });
+        // Initialize geocoder with a CORS proxy to ensure it works in the browser
+        this.geocoder = new BrowserGeocoder({ 
+            provider: 'openstreetmap',
+            corsProxy: 'https://cors.eu.org/'
+        });
         this.sweph.swe_set_sid_mode(this.sweph.SE_SIDM_FAGAN_BRADLEY, 0, 0);
         this.initialized = true;
         console.log('Astrology engine initialized with Fagan/Bradley Ayanamsa.');
@@ -164,8 +168,6 @@ class AstrologyEngine {
         return 1;
     }
     
-    // ... (The rest of the file from calculateNatalAspects onwards can remain the same as my previous answer) ...
-    // The following functions are correct and do not need changes.
     calculateNatalAspects(positions) {
         const planets = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'truenode', 'chiron', 'ascendant', 'midheaven'];
         const aspects = [];

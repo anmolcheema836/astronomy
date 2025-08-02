@@ -590,9 +590,10 @@ function closeNotifications() {
     modal.classList.add('hidden');
 }
 
-// Location autocomplete functionality - moved to global initialization
-let locationTimeout;
 
+// --- REWRITTEN LOCATION AUTOCOMPLETE SECTION ---
+
+// Binds the autocomplete feature to the location input fields.
 function initializeLocationAutocomplete() {
     const welcomeInput = document.getElementById('placeOfBirth');
     const welcomeBox = document.getElementById('locationSuggestions');
@@ -607,63 +608,78 @@ function initializeLocationAutocomplete() {
     }
 }
 
-function bindAutocomplete(input, box) {
-    let timer;
-    input.addEventListener('input', e => {
-        clearTimeout(timer);
-        const q = e.target.value.trim();
-        if (q.length < 2) { box.classList.add('hidden'); return; }
-        timer = setTimeout(async () => {
-            try {
-                const res = await fetch(
-                    `https://cors-anywhere.herokuapp.com/https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`
-                );
-                const data = await res.json();
-                const suggestions = data.map(item => ({
-                    display_name: item.display_name,
-                    lat: item.lat,
-                    lon: item.lon
-                }));
-                showLocationSuggestions(suggestions, box, input);
-            } catch (error) {
-                console.log('CORS or network error:', error);
-                box.classList.add('hidden');
+// Attaches event listeners to an input field to provide location suggestions.
+function bindAutocomplete(inputElement, suggestionsDiv) {
+    let debounceTimer;
+
+    inputElement.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        const query = e.target.value.trim();
+
+        if (query.length < 3) {
+            suggestionsDiv.innerHTML = '';
+            suggestionsDiv.classList.add('hidden');
+            return;
+        }
+
+        debounceTimer = setTimeout(async () => {
+            // Use the geocoder instance from the astrology engine.
+            if (window.astrology && window.astrology.geocoder) {
+                try {
+                    const suggestions = await window.astrology.geocoder.suggest(query, 5);
+                    showLocationSuggestions(suggestions, suggestionsDiv, inputElement);
+                } catch (error) {
+                    console.error('Location suggestion fetch failed:', error);
+                    suggestionsDiv.innerHTML = '';
+                    suggestionsDiv.classList.add('hidden');
+                }
+            } else {
+                console.error('Geocoder not available on window.astrology.geocoder');
             }
-        }, 300);
+        }, 300); // Debounce requests to avoid spamming the API.
     });
-    input.addEventListener('blur', () => setTimeout(() => box.classList.add('hidden'), 150));
+
+    // Hide suggestions when the input loses focus, with a delay to allow clicks.
+    inputElement.addEventListener('blur', () => {
+        setTimeout(() => {
+            suggestionsDiv.classList.add('hidden');
+        }, 200); 
+    });
 }
 
-// Show location suggestions
+// Displays the fetched location suggestions in the suggestions dropdown.
 function showLocationSuggestions(suggestions, suggestionsDiv, inputElement) {
-    console.log('Showing suggestions:', suggestions);
-    // Critical functionality: handle all suggestion states properly
+    suggestionsDiv.innerHTML = ''; // Clear previous suggestions.
+
     if (!suggestions || suggestions.length === 0) {
-        console.log('No suggestions to show, hiding dropdown');
         suggestionsDiv.classList.add('hidden');
         return;
     }
-    
-    suggestionsDiv.innerHTML = suggestions.map(suggestion => 
-        `<div class="location-suggestion" data-location="${suggestion.display_name}">
-            ${suggestion.display_name}
-         </div>`
-    ).join('');
-    
-    // Add click handlers
-    suggestionsDiv.querySelectorAll('.location-suggestion').forEach(item => {
-        item.addEventListener('click', () => {
-            inputElement.value = item.dataset.location;
+
+    // Create and append new suggestion elements.
+    suggestions.forEach(suggestion => {
+        const item = document.createElement('div');
+        item.className = 'location-suggestion';
+        item.textContent = suggestion.display_name;
+
+        // Use 'mousedown' which fires before the input's 'blur' event.
+        item.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // Prevent the input from losing focus.
+            inputElement.value = suggestion.display_name;
+            suggestionsDiv.innerHTML = '';
             suggestionsDiv.classList.add('hidden');
             inputElement.focus();
         });
+
+        suggestionsDiv.appendChild(item);
     });
-    
-    // Show suggestions
-    if (suggestions.length > 0) {
-        suggestionsDiv.classList.remove('hidden');
-    }
+
+    suggestionsDiv.classList.remove('hidden');
 }
+
+
+// --- END OF REWRITTEN SECTION ---
+
 
 // Settings management
 function openSettings() {
