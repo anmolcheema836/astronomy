@@ -8,6 +8,7 @@ class BrowserGeocoder {
         this.apiKey = options.apiKey || null;
         this.language = options.language || 'en';
         this.region = options.region || null;
+        this.corsProxy = options.corsProxy || ''; // Added for browser-based requests
         this.cache = new Map();
     }
     
@@ -61,7 +62,8 @@ class BrowserGeocoder {
     
     // OpenStreetMap geocoding
     async geocodeWithOSM(address) {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&addressdetails=1`;
+        const baseUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&addressdetails=1`;
+        const url = this.corsProxy ? `${this.corsProxy}${baseUrl}` : baseUrl;
         
         try {
             const response = await fetch(url);
@@ -95,8 +97,9 @@ class BrowserGeocoder {
     
     // OpenStreetMap reverse geocoding
     async reverseWithOSM(coords) {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&addressdetails=1`;
-        
+        const baseUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lon}&addressdetails=1`;
+        const url = this.corsProxy ? `${this.corsProxy}${baseUrl}` : baseUrl;
+
         try {
             const response = await fetch(url);
             const data = await response.json();
@@ -226,8 +229,9 @@ class BrowserGeocoder {
     
     // Search for locations with suggestions
     async suggest(query, limit = 10) {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=${limit}&addressdetails=1`;
-        
+        const baseUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=${limit}&addressdetails=1`;
+        const url = this.corsProxy ? `${this.corsProxy}${baseUrl}` : baseUrl;
+
         try {
             const response = await fetch(url);
             const data = await response.json();
